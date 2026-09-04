@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayarlar</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f8f9fa; margin-bottom: 8px; border-radius: 8px; border: 1px solid #e9ecef; font-size: 0.9rem; font-weight: 500; }
+        .del-badge { color: #fa5252; cursor: pointer; background: #ffe3e3; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <i class="fa-solid fa-sliders"></i> Sistem Ayarları
+    </div>
+    
+    <div class="container">
+        <!-- Personel Yönetimi -->
+        <div class="card">
+            <div class="card-title"><i class="fa-solid fa-users"></i> Personel Yönetimi</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="newStylist" placeholder="Yeni Personel Adı">
+                <button class="btn" style="width: auto; padding: 10px 18px;" onclick="add('stylists', 'newStylist')">Ekle</button>
+            </div>
+            <div id="stylistList"></div>
+        </div>
+
+        <!-- Volüm Yönetimi -->
+        <div class="card">
+            <div class="card-title"><i class="fa-solid fa-flask"></i> Oksidan Volüm Yönetimi</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="newVolume" placeholder="Örn: 25 Vol">
+                <button class="btn" style="width: auto; padding: 10px 18px;" onclick="add('volumes', 'newVolume')">Ekle</button>
+            </div>
+            <div id="volumeList"></div>
+        </div>
+    </div>
+
+    <!-- Alt Navigasyon Menüsü -->
+    <div class="nav-bar">
+        <a href="index.html" class="nav-item"><i class="fa-solid fa-user-plus"></i>Kayıt Ekle</a>
+        <a href="liste.html" class="nav-item"><i class="fa-solid fa-address-book"></i>Müşteriler</a>
+        <a href="ayarlar.html" class="nav-item active"><i class="fa-solid fa-sliders"></i>Ayarlar</a>
+    </div>
+
+    <script>
+        window.onload = loadSettings;
+
+        function loadSettings() {
+            let stylists = JSON.parse(localStorage.getItem('stylists')) || ["Elif", "Ayşe", "Mehmet"];
+            let volumes = JSON.parse(localStorage.getItem('volumes')) || ["10 Vol (%3)", "20 Vol (%6)", "30 Vol (%9)", "40 Vol (%12)", "Oksidansız"];
+            
+            document.getElementById('stylistList').innerHTML = stylists.map((s, i) => `
+                <div class="setting-item">
+                    <span><i class="fa-solid fa-user" style="color:var(--secondary); margin-right:8px;"></i>${s}</span>
+                    <span class="del-badge" onclick="remove('stylists', ${i})"><i class="fa-solid fa-trash"></i> Sil</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('volumeList').innerHTML = volumes.map((v, i) => `
+                <div class="setting-item">
+                    <span><i class="fa-solid fa-droplet" style="color:var(--primary); margin-right:8px;"></i>${v}</span>
+                    <span class="del-badge" onclick="remove('volumes', ${i})"><i class="fa-solid fa-trash"></i> Sil</span>
+                </div>
+            `).join('');
+        }
+
+        function add(key, inputId) {
+            let val = document.getElementById(inputId).value.trim();
+            if(!val) return;
+            let list = JSON.parse(localStorage.getItem(key)) || [];
+            if(!list.includes(val)) {
+                list.push(val);
+                localStorage.setItem(key, JSON.stringify(list));
+            }
+            document.getElementById(inputId).value = '';
+            loadSettings();
+        }
+
+        function remove(key, index) {
+            let list = JSON.parse(localStorage.getItem(key)) || [];
+            list.splice(index, 1);
+            localStorage.setItem(key, JSON.stringify(list));
+            loadSettings();
+        }
+    </script>
+</body>
+</html>

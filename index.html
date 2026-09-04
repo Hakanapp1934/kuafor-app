@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuaför Asistanı - Müşteri Kayıt</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <i class="fa-solid fa-scissors"></i> Kuaför Müşteri & Gramaj Takip
+    </div>
+    
+    <div class="container">
+        <div id="successMessage" class="success-msg">✅ İşlem başarıyla gerçekleştirildi!</div>
+        
+        <div class="card">
+            <div class="card-title" id="formTitle">
+                <i class="fa-solid fa-user-plus"></i> Yeni Müşteri Kaydı
+            </div>
+            
+            <form id="hairForm">
+                <input type="hidden" id="editId" value="">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Müşteri Adı Soyadı *</label>
+                        <input type="text" id="name" placeholder="Örn: Ayşe Yılmaz" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefon Numarası</label>
+                        <input type="tel" id="phone" placeholder="05XX XXX XX XX">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Boya Markası *</label>
+                        <input type="text" id="brand" placeholder="Örn: L'Oréal, Schwarzkopf" required>
+                    </div>
+
+                    <!-- Dip Boya -->
+                    <div class="section-tag"><i class="fa-solid fa-paint-roller"></i> Dip Boya Detayları</div>
+                    <div class="form-group"><label>Dip Boya Numaraları</label><input type="text" id="rootColor" placeholder="Örn: 6.0 + 7.1"></div>
+                    <div class="form-group"><label>Dip Boya Gramajı</label><input type="text" id="rootGram" placeholder="Örn: 30gr + 15gr"></div>
+                    <div class="form-group"><label>Dip Volüm (Oksidan)</label><select id="rootVolume" class="vol-select"></select></div>
+
+                    <!-- Komple Boya -->
+                    <div class="section-tag"><i class="fa-solid fa-brush"></i> Komple Boya Detayları</div>
+                    <div class="form-group"><label>Komple Boya Numaraları</label><input type="text" id="fullColor" placeholder="Örn: 8.3"></div>
+                    <div class="form-group"><label>Komple Boya Gramajı</label><input type="text" id="fullGram" placeholder="Örn: 50gr"></div>
+                    <div class="form-group"><label>Komple Volüm (Oksidan)</label><select id="fullVolume" class="vol-select"></select></div>
+
+                    <!-- İşlem Detayları -->
+                    <div class="section-tag"><i class="fa-solid fa-clock"></i> İşlem ve Personel</div>
+                    <div class="form-group"><label>Bekleme Süresi (Dakika)</label><input type="number" id="waitTime" placeholder="Örn: 35"></div>
+                    <div class="form-group"><label>İşlemi Yapan Personel *</label><select id="stylist" required></select></div>
+                    <div class="form-group"><label>İşlem Tarihi</label><input type="date" id="processDate"></div>
+                    <div class="form-group"><label>Özel Notlar / Saç Yapısı</label><textarea id="notes" rows="2" placeholder="Örn: %80 beyaz var, uçlar açık kumral..."></textarea></div>
+
+                    <div style="margin-top: 10px;">
+                        <button type="button" class="btn" id="saveBtn" onclick="saveData()">
+                            <i class="fa-solid fa-floppy-disk"></i> Müşteriyi Kaydet ve Gönder
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display:none; margin-top: 8px;">
+                            İptal Et
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alt Navigasyon Menüsü -->
+    <div class="nav-bar">
+        <a href="index.html" class="nav-item active"><i class="fa-solid fa-user-plus"></i>Kayıt Ekle</a>
+        <a href="liste.html" class="nav-item"><i class="fa-solid fa-address-book"></i>Müşteriler</a>
+        <a href="ayarlar.html" class="nav-item"><i class="fa-solid fa-sliders"></i>Ayarlar</a>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxj3SX7iW7ruzD6hQ3sq2WIcIf6JTsAfMqw1hscgxm8sXd_DJLNeY0f0tWb0lHJq7IW/exec";
+
+        window.onload = function() {
+            document.getElementById('processDate').valueAsDate = new Date();
+            loadDropdowns();
+            checkEditMode();
+        };
+
+        function loadDropdowns() {
+            let stylists = JSON.parse(localStorage.getItem('stylists')) || ["Elif", "Ayşe", "Mehmet"];
+            let volumes = JSON.parse(localStorage.getItem('volumes')) || ["10 Vol (%3)", "20 Vol (%6)", "30 Vol (%9)", "40 Vol (%12)", "Oksidansız"];
+            
+            let stylistSelect = document.getElementById('stylist');
+            stylistSelect.innerHTML = '<option value="">Personel Seçiniz *</option>';
+            stylists.forEach(s => stylistSelect.innerHTML += `<option value="${s}">${s}</option>`);
+            
+            document.querySelectorAll('.vol-select').forEach(sel => {
+                sel.innerHTML = '<option value="-">Volüm Seçilmedi</option>';
+                volumes.forEach(v => sel.innerHTML += `<option value="${v}">${v}</option>`);
+            });
+        }
+
+        function checkEditMode() {
+            const editData = localStorage.getItem('editCustomer');
+            if(editData) {
+                const c = JSON.parse(editData);
+                document.getElementById('editId').value = c.id;
+                document.getElementById('name').value = c.name;
+                document.getElementById('phone').value = c.phone !== '-' ? c.phone : '';
+                document.getElementById('brand').value = c.brand !== '-' ? c.brand : '';
+                document.getElementById('rootColor').value = c.rootColor !== 'Yok' ? c.rootColor : '';
+                document.getElementById('rootGram').value = c.rootGram !== '0 gr' ? c.rootGram : '';
+                document.getElementById('rootVolume').value = c.rootVolume;
+                document.getElementById('fullColor').value = c.fullColor !== 'Yok' ? c.fullColor : '';
+                document.getElementById('fullGram').value = c.fullGram !== '0 gr' ? c.fullGram : '';
+                document.getElementById('fullVolume').value = c.fullVolume;
+                document.getElementById('waitTime').value = c.waitTime !== '-' ? c.waitTime : '';
+                document.getElementById('stylist').value = c.stylist;
+                document.getElementById('processDate').value = c.date ? c.date.split('.').reverse().join('-') : new Date().toISOString().split('T')[0];
+                document.getElementById('notes').value = c.notes !== 'Not yok.' ? c.notes : '';
+
+                document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-user-pen"></i> Müşteri Kaydını Düzenle`;
+                document.getElementById('saveBtn').innerHTML = `<i class="fa-solid fa-check"></i> Güncellemeyi Kaydet`;
+                document.getElementById('cancelEditBtn').style.display = 'flex';
+            }
+        }
+
+        function cancelEdit() {
+            localStorage.removeItem('editCustomer');
+            window.location.href = 'liste.html';
+        }
+
+        function saveData() {
+            const name = document.getElementById('name').value.trim();
+            const brand = document.getElementById('brand').value.trim();
+            const stylist = document.getElementById('stylist').value;
+
+            if(!name || !brand || !stylist) {
+                alert("⚠️ Lütfen Müşteri Adı, Boya Markası ve Personel alanlarını doldurunuz!");
+                return;
+            }
+
+            const btn = document.getElementById('saveBtn');
+            btn.innerHTML = "⏳ İşleniyor...";
+            btn.disabled = true;
+
+            const editId = document.getElementById('editId').value;
+            const rawDate = document.getElementById('processDate').value;
+            const formattedDate = rawDate ? rawDate.split('-').reverse().join('.') : new Date().toLocaleDateString('tr-TR');
+
+            const payload = {
+                id: editId ? Number(editId) : Date.now(),
+                date: formattedDate,
+                name: name,
+                phone: document.getElementById('phone').value.trim() || "-",
+                brand: brand,
+                rootColor: document.getElementById('rootColor').value.trim() || "Yok",
+                rootGram: document.getElementById('rootGram').value.trim() || "0 gr",
+                rootVolume: document.getElementById('rootVolume').value || "Yok",
+                fullColor: document.getElementById('fullColor').value.trim() || "Yok",
+                fullGram: document.getElementById('fullGram').value.trim() || "0 gr",
+                fullVolume: document.getElementById('fullVolume').value || "Yok",
+                waitTime: document.getElementById('waitTime').value.trim() || "-",
+                stylist: stylist,
+                notes: document.getElementById('notes').value.trim() || "Not yok."
+            };
+
+            let customers = JSON.parse(localStorage.getItem('customers')) || [];
+
+            if(editId) {
+                // Güncelleme Modu
+                customers = customers.map(c => c.id == editId ? payload : c);
+                localStorage.removeItem('editCustomer');
+            } else {
+                // Yeni Kayıt Modu
+                customers.unshift(payload);
+            }
+
+            localStorage.setItem('customers', JSON.stringify(customers));
+
+            // Google Drive'a Gönder
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                showSuccessAndRedirect();
+            }).catch(() => {
+                showSuccessAndRedirect(); // İnternet olmasa bile yerelde çalışmaya devam eder
+            });
+        }
+
+        function showSuccessAndRedirect() {
+            document.getElementById('successMessage').style.display = 'block';
+            setTimeout(() => {
+                window.location.href = 'liste.html';
+            }, 1200);
+        }
+    </script>
+</body>
+</html>

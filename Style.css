@@ -1,0 +1,196 @@
+:root {
+    --primary: #ff2a85;
+    --primary-gradient: linear-gradient(135deg, #ff2a85 0%, #7928ca 100%);
+    --secondary: #6f42c1;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-main: #212529;
+    --text-muted: #6c757d;
+    --border-radius: 16px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 90px; -webkit-tap-highlight-color: transparent; }
+
+/* Üst Başlık */
+.header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 22px 15px;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(255, 42, 133, 0.2);
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    margin-bottom: 20px;
+}
+
+.container { padding: 0 15px; max-width: 650px; margin: 0 auto; }
+
+/* Kart Yapısı */
+.card { 
+    background: var(--card-bg); 
+    border-radius: var(--border-radius); 
+    padding: 20px; 
+    box-shadow: var(--shadow); 
+    margin-bottom: 20px; 
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--secondary);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid #f1f3f5;
+    padding-bottom: 10px;
+}
+
+/* Form Elemanları */
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+label { font-size: 0.82rem; font-weight: 600; color: #495057; }
+input, select, textarea { 
+    padding: 12px 14px; 
+    border: 1.5px solid #e9ecef; 
+    border-radius: 10px; 
+    font-size: 0.95rem; 
+    outline: none; 
+    width: 100%; 
+    background: #fff;
+    transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,42,133,0.1); }
+
+.section-tag {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: #fff0f6;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin: 8px 0 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Butonlar */
+.btn {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 20px rgba(255, 42, 133, 0.25);
+    transition: transform 0.1s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-secondary { background: #6c757d; box-shadow: none; }
+
+/* Alt Navigasyon Çubuğu (Mobil Uygulama Hissi) */
+.nav-bar { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    width: 100%; 
+    background: rgba(255, 255, 255, 0.95); 
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08); 
+    display: flex; 
+    justify-content: space-around; 
+    padding: 12px 0; 
+    z-index: 1000; 
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+.nav-item { 
+    text-decoration: none; 
+    color: var(--text-muted); 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    font-size: 0.72rem; 
+    font-weight: 600; 
+    gap: 4px; 
+    transition: color 0.2s;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item i { font-size: 1.2rem; }
+
+/* Bildirim Kutusu */
+.success-msg { 
+    display: none; 
+    background: #d1e7dd; 
+    color: #0f5132; 
+    padding: 14px; 
+    border-radius: 12px; 
+    text-align: center; 
+    font-weight: 600; 
+    margin-bottom: 15px; 
+    border: 1px solid #badbcc;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Müşteri Kartları */
+.customer-card { 
+    background: white; 
+    border-radius: 14px; 
+    padding: 16px; 
+    margin-bottom: 14px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
+    border: 1px solid #f1f3f5;
+    border-left: 5px solid var(--primary);
+    position: relative;
+}
+.customer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.customer-name { font-size: 1.1rem; font-weight: 700; color: #111; }
+.customer-phone { font-size: 0.82rem; color: var(--text-muted); }
+.customer-date { font-size: 0.75rem; background: #eef2ff; color: var(--secondary); padding: 4px 8px; border-radius: 20px; font-weight: 600; }
+
+.formula-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    margin: 10px 0;
+    border: 1px solid #e9ecef;
+}
+
+.badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-bottom: 4px; }
+.badge-dip { background: #ffe3e3; color: #c92a2a; }
+.badge-komple { background: #e7f5ff; color: #1864ab; }
+
+.action-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.btn-action { 
+    flex: 1; 
+    padding: 8px; 
+    border-radius: 8px; 
+    border: none; 
+    font-size: 0.8rem; 
+    font-weight: 600; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 5px; 
+}
+.btn-edit { background: #e7f5ff; color: #1864ab; }
+.btn-del { background: #ffe3e3; color: #c92a2a; }
