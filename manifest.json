@@ -1,13 +1,13 @@
 {
   "name": "Müşteri Takip",
-  "short_name": "Müşteriler",
+  "short_name": "Müşteri Boya Kayıt",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6c5ce7",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "src": "https://github.com/Hakanapp1934/kuafor-app/blob/main/image_2026-09-05_03_03_52.png",
       "sizes": "512x512",
       "type": "image/png"
     }
