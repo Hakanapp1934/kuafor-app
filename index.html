@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Müşteri Boya Kayıt</title>
+    <title>Kuaför Asistanı - Müşteri Kayıt</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -54,7 +54,7 @@
                     <!-- İşlem Detayları -->
                     <div class="section-tag"><i class="fa-solid fa-clock"></i> İşlem ve Personel</div>
                     <div class="form-group"><label>Bekleme Süresi (Dakika)</label><input type="number" id="waitTime" placeholder="Örn: 35"></div>
-                    <div class="form-group"><label>İşlemi Yapan Kişi *</label><select id="stylist" required></select></div>
+                    <div class="form-group"><label>İşlemi Yapan Personel *</label><select id="stylist" required></select></div>
                     <div class="form-group"><label>İşlem Tarihi</label><input type="date" id="processDate"></div>
                     <div class="form-group"><label>Özel Notlar / Saç Yapısı</label><textarea id="notes" rows="2" placeholder="Örn: %80 beyaz var, uçlar açık kumral..."></textarea></div>
 
@@ -73,7 +73,7 @@
 
     <!-- Alt Navigasyon Menüsü -->
     <div class="nav-bar">
-        <a href="index.html" class="nav-item active"><i class="fa-solid fa-user-plus"></i>Müşteri Ekle</a>
+        <a href="index.html" class="nav-item active"><i class="fa-solid fa-user-plus"></i>Kayıt Ekle</a>
         <a href="liste.html" class="nav-item"><i class="fa-solid fa-address-book"></i>Müşteriler</a>
         <a href="ayarlar.html" class="nav-item"><i class="fa-solid fa-sliders"></i>Ayarlar</a>
     </div>
@@ -169,17 +169,14 @@
             let customers = JSON.parse(localStorage.getItem('customers')) || [];
 
             if(editId) {
-                // Güncelleme Modu
                 customers = customers.map(c => c.id == editId ? payload : c);
                 localStorage.removeItem('editCustomer');
             } else {
-                // Yeni Kayıt Modu
                 customers.unshift(payload);
             }
 
             localStorage.setItem('customers', JSON.stringify(customers));
 
-            // Google Drive'a Gönder
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -188,7 +185,7 @@
             }).then(() => {
                 showSuccessAndRedirect();
             }).catch(() => {
-                showSuccessAndRedirect(); // İnternet olmasa bile yerelde çalışmaya devam eder
+                showSuccessAndRedirect();
             });
         }
 
