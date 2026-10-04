@@ -6,10 +6,6 @@
     <title>Ayarlar</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f8f9fa; margin-bottom: 8px; border-radius: 8px; border: 1px solid #e9ecef; font-size: 0.9rem; font-weight: 500; }
-        .del-badge { color: #fa5252; cursor: pointer; background: #ffe3e3; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; }
-    </style>
 </head>
 <body>
     <div class="header">
@@ -17,24 +13,28 @@
     </div>
     
     <div class="container">
-        <!-- Personel Yönetimi -->
-        <div class="card">
-            <div class="card-title"><i class="fa-solid fa-users"></i> Personel Yönetimi</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="newStylist" placeholder="Yeni Personel Adı">
-                <button class="btn" style="width: auto; padding: 10px 18px;" onclick="add('stylists', 'newStylist')">Ekle</button>
-            </div>
-            <div id="stylistList"></div>
+        <div id="syncStatus" style="text-align:center; font-size: 0.8rem; color: #6c757d; margin-bottom: 12px; font-weight:600;">
+            <i class="fa-solid fa-arrows-rotate fa-spin"></i> Ayarlar Google Tablolar ile senkronize ediliyor...
         </div>
 
-        <!-- Volüm Yönetimi -->
+        <!-- Personel Yönetimi -->
         <div class="card">
-            <div class="card-title"><i class="fa-solid fa-flask"></i> Oksidan Volüm Yönetimi</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="newVolume" placeholder="Örn: 25 Vol">
-                <button class="btn" style="width: auto; padding: 10px 18px;" onclick="add('volumes', 'newVolume')">Ekle</button>
+            <div class="card-title"><i class="fa-solid fa-users"></i> Personel Listesi</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input type="text" id="newStylist" placeholder="Yeni personel adı...">
+                <button class="btn" style="width: auto; padding: 0 18px;" onclick="addStylist()">Ekle</button>
             </div>
-            <div id="volumeList"></div>
+            <ul id="stylistList" style="list-style: none; padding: 0; margin: 0;"></ul>
+        </div>
+
+        <!-- Volüm / Oksidan Yönetimi -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-title"><i class="fa-solid fa-vial"></i> Volüm / Oksidan Seçenekleri</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input type="text" id="newVolume" placeholder="Örn: 15 Vol (%4.5)...">
+                <button class="btn" style="width: auto; padding: 0 18px;" onclick="addVolume()">Ekle</button>
+            </div>
+            <ul id="volumeList" style="list-style: none; padding: 0; margin: 0;"></ul>
         </div>
     </div>
 
@@ -46,44 +46,109 @@
     </div>
 
     <script>
-        window.onload = loadSettings;
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxj3SX7iW7ruzD6hQ3sq2WIcIf6JTsAfMqw1hscgxm8sXd_DJLNeY0f0tWb0lHJq7IW/exec";
 
-        function loadSettings() {
+        window.onload = function() {
+            renderLists();
+            fetchSettingsFromGoogle();
+        };
+
+        function fetchSettingsFromGoogle() {
+            const syncDiv = document.getElementById('syncStatus');
+            syncDiv.style.display = 'block';
+
+            fetch(SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.stylists) localStorage.setItem('stylists', JSON.stringify(data.stylists));
+                    if (data.volumes) localStorage.setItem('volumes', JSON.stringify(data.volumes));
+                    renderLists();
+                })
+                .catch(err => console.error("Ayarlar çekilemedi:", err))
+                .finally(() => {
+                    syncDiv.style.display = 'none';
+                });
+        }
+
+        function saveSettingsToGoogle() {
+            const stylists = JSON.parse(localStorage.getItem('stylists')) || [];
+            const volumes = JSON.parse(localStorage.getItem('volumes')) || [];
+
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "saveSettings",
+                    stylists: stylists,
+                    volumes: volumes
+                })
+            });
+        }
+
+        function renderLists() {
             let stylists = JSON.parse(localStorage.getItem('stylists')) || ["Elif", "Ayşe", "Mehmet"];
             let volumes = JSON.parse(localStorage.getItem('volumes')) || ["10 Vol (%3)", "20 Vol (%6)", "30 Vol (%9)", "40 Vol (%12)", "Oksidansız"];
-            
-            document.getElementById('stylistList').innerHTML = stylists.map((s, i) => `
-                <div class="setting-item">
-                    <span><i class="fa-solid fa-user" style="color:var(--secondary); margin-right:8px;"></i>${s}</span>
-                    <span class="del-badge" onclick="remove('stylists', ${i})"><i class="fa-solid fa-trash"></i> Sil</span>
-                </div>
+
+            // Personel Listesi
+            const sUl = document.getElementById('stylistList');
+            sUl.innerHTML = stylists.map((s, idx) => `
+                <li style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <span style="font-weight:600; color:#333;">${s}</span>
+                    <button onclick="removeStylist(${idx})" style="background:none; border:none; color:#dc3545; cursor:pointer; font-size:1rem;"><i class="fa-solid fa-trash-can"></i></button>
+                </li>
             `).join('');
-            
-            document.getElementById('volumeList').innerHTML = volumes.map((v, i) => `
-                <div class="setting-item">
-                    <span><i class="fa-solid fa-droplet" style="color:var(--primary); margin-right:8px;"></i>${v}</span>
-                    <span class="del-badge" onclick="remove('volumes', ${i})"><i class="fa-solid fa-trash"></i> Sil</span>
-                </div>
+
+            // Volüm Listesi
+            const vUl = document.getElementById('volumeList');
+            vUl.innerHTML = volumes.map((v, idx) => `
+                <li style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <span style="font-weight:600; color:#333;">${v}</span>
+                    <button onclick="removeVolume(${idx})" style="background:none; border:none; color:#dc3545; cursor:pointer; font-size:1rem;"><i class="fa-solid fa-trash-can"></i></button>
+                </li>
             `).join('');
         }
 
-        function add(key, inputId) {
-            let val = document.getElementById(inputId).value.trim();
+        function addStylist() {
+            const input = document.getElementById('newStylist');
+            const val = input.value.trim();
             if(!val) return;
-            let list = JSON.parse(localStorage.getItem(key)) || [];
-            if(!list.includes(val)) {
-                list.push(val);
-                localStorage.setItem(key, JSON.stringify(list));
-            }
-            document.getElementById(inputId).value = '';
-            loadSettings();
+            
+            let stylists = JSON.parse(localStorage.getItem('stylists')) || [];
+            stylists.push(val);
+            localStorage.setItem('stylists', JSON.stringify(stylists));
+            input.value = '';
+            renderLists();
+            saveSettingsToGoogle();
         }
 
-        function remove(key, index) {
-            let list = JSON.parse(localStorage.getItem(key)) || [];
-            list.splice(index, 1);
-            localStorage.setItem(key, JSON.stringify(list));
-            loadSettings();
+        function removeStylist(idx) {
+            let stylists = JSON.parse(localStorage.getItem('stylists')) || [];
+            stylists.splice(idx, 1);
+            localStorage.setItem('stylists', JSON.stringify(stylists));
+            renderLists();
+            saveSettingsToGoogle();
+        }
+
+        function addVolume() {
+            const input = document.getElementById('newVolume');
+            const val = input.value.trim();
+            if(!val) return;
+
+            let volumes = JSON.parse(localStorage.getItem('volumes')) || [];
+            volumes.push(val);
+            localStorage.setItem('volumes', JSON.stringify(volumes));
+            input.value = '';
+            renderLists();
+            saveSettingsToGoogle();
+        }
+
+        function removeVolume(idx) {
+            let volumes = JSON.parse(localStorage.getItem('volumes')) || [];
+            volumes.splice(idx, 1);
+            localStorage.setItem('volumes', JSON.stringify(volumes));
+            renderLists();
+            saveSettingsToGoogle();
         }
     </script>
 </body>
