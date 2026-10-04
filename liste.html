@@ -14,6 +14,61 @@
             margin-bottom: 12px;
             font-weight: 600;
         }
+        /* Modal / Açılır Pencere Stilleri */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { margin: 0; font-size: 1rem; color: #333; }
+        .modal-close {
+            background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;
+        }
+        .modal-body {
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .timeline-item {
+            border-left: 3px solid #6c5ce7;
+            padding-left: 12px;
+            margin-bottom: 15px;
+            position: relative;
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 0 8px 8px 0;
+        }
+        .timeline-date {
+            font-size: 0.78rem;
+            color: #6c5ce7;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -34,6 +89,17 @@
         <div id="listContainer"></div>
     </div>
 
+    <!-- Müşteri Geçmişi Açılır Penceresi (Modal) -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fa-solid fa-clock-rotate-left"></i> İşlem Geçmişi</h3>
+                <button class="modal-close" onclick="closeHistory()">&times;</button>
+            </div>
+            <div id="historyContainer" class="modal-body"></div>
+        </div>
+    </div>
+
     <!-- Alt Navigasyon Menüsü -->
     <div class="nav-bar">
         <a href="index.html" class="nav-item"><i class="fa-solid fa-user-plus"></i>Kayıt Ekle</a>
@@ -45,8 +111,8 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwESaLY74wnh4brbKkdx4V7JRdk-KHlmJGhDfKKcdWrCiJ9z2Xoj_IUQDY0aTxZ7g_z/exec";
 
         window.onload = function() {
-            loadList(); // Önce yerel hafızadakileri hızlıca göster
-            fetchDataFromGoogle(); // Ardından Google Tablolar'dan güncel veriyi çek
+            loadList(); // Önce yerel hafızadakileri göster
+            fetchDataFromGoogle(); // Google Tablolar'dan güncel veriyi çek
         };
 
         function fetchDataFromGoogle() {
@@ -57,13 +123,10 @@
                 .then(response => response.json())
                 .then(remoteData => {
                     let customerList = [];
-                    
-                    // Gelen veri dizi mi yoksa obje mi kontrol et
                     if (Array.isArray(remoteData)) {
                         customerList = remoteData;
                     } else if (remoteData && Array.isArray(remoteData.customers)) {
                         customerList = remoteData.customers;
-                        
                         if (remoteData.stylists) localStorage.setItem('stylists', JSON.stringify(remoteData.stylists));
                         if (remoteData.volumes) localStorage.setItem('volumes', JSON.stringify(remoteData.volumes));
                     }
@@ -148,7 +211,10 @@
                             <span><i class="fa-solid fa-stopwatch"></i> Bekleme: <b>${waitTime} dk</b></span>
                         </div>
 
-                        <div class="action-buttons">
+                        <div class="action-buttons" style="display: flex; gap: 6px; margin-top: 10px;">
+                            <button class="btn-action" onclick="showHistory('${phone}', '${name}')" style="background:#6c5ce7; color:white;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş
+                            </button>
                             <button class="btn-action btn-edit" onclick="editCustomer('${id}')">
                                 <i class="fa-solid fa-pen-to-square"></i> Düzenle
                             </button>
@@ -159,6 +225,53 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        function showHistory(phone, name) {
+            let customers = JSON.parse(localStorage.getItem('customers')) || [];
+            const cleanPhone = String(phone).trim();
+            const cleanName = String(name).toLowerCase().trim();
+
+            // Müşteriyi telefon numarasına veya ismine göre eşleştirip tüm geçmişini çekiyoruz
+            const history = customers.filter(c => {
+                const cPhone = String(c.phone || '').trim();
+                const cName = String(c.name || '').toLowerCase().trim();
+                if (cleanPhone && cleanPhone !== '-') {
+                    return cPhone === cleanPhone;
+                }
+                return cName === cleanName;
+            });
+
+            document.getElementById('modalTitle').innerText = `${name} - İşlem Geçmişi (${history.length} Kayıt)`;
+            const container = document.getElementById('historyContainer');
+
+            if (history.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding: 20px; color: #adb5bd;">Geçmiş işlem bulunamadı.</div>`;
+            } else {
+                container.innerHTML = history.map(c => `
+                    <div class="timeline-item">
+                        <div class="timeline-date">
+                            <i class="fa-regular fa-calendar"></i> ${c.date || '-'} | <i class="fa-solid fa-user-check"></i> Yapan: ${c.stylist || '-'}
+                        </div>
+                        <div style="font-size:0.85rem; font-weight:bold; color:#333; margin-bottom: 4px;">
+                            <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand || '-'}
+                        </div>
+                        <div style="font-size:0.8rem; color:#555; margin-bottom: 4px;">
+                            <b>Dip:</b> ${c.rootColor || '-'} (${c.rootGram || '-'}g / ${c.rootVolume || '-'})<br>
+                            <b>Komple:</b> ${c.fullColor || '-'} (${c.fullGram || '-'}g / ${c.fullVolume || '-'})
+                        </div>
+                        <div style="font-size:0.75rem; color:#6c757d;">
+                            <b>Bekleme:</b> ${c.waitTime || '-'} dk | <b>Not:</b> ${c.notes || 'Yok'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('historyModal').classList.add('active');
+        }
+
+        function closeHistory() {
+            document.getElementById('historyModal').classList.remove('active');
         }
 
         function editCustomer(id) {
