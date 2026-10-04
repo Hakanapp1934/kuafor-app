@@ -42,7 +42,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxj3SX7iW7ruzD6hQ3sq2WIcIf6JTsAfMqw1hscgxm8sXd_DJLNeY0f0tWb0lHJq7IW/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwf9bdnzspFiiwqxtTNK4KB-N3eIXiumcA1VaDqNGRvRQy9ETS8H1WV1bWHMTUXY-eo/exec";
 
         window.onload = function() {
             loadList(); // Önce yerel hafızadakileri hızlıca göster
@@ -144,20 +144,23 @@
         }
 
         function deleteCustomer(id) {
-            if(confirm("Bu müşteri kaydını silmek istediğinize emin misiniz?")) {
-                let customers = JSON.parse(localStorage.getItem('customers')) || [];
-                customers = customers.filter(c => c.id != id);
-                localStorage.setItem('customers', JSON.stringify(customers));
-                loadList();
+    if(confirm("Bu müşteri kaydını silmek istediğinize emin misiniz?")) {
+        let customers = JSON.parse(localStorage.getItem('customers')) || [];
+        
+        // Cihaz hafızasından sil (Metin dönüşümü yaparak)
+        customers = customers.filter(c => String(c.id).trim() !== String(id).trim());
+        localStorage.setItem('customers', JSON.stringify(customers));
+        loadList();
 
-                // Google Tablolar'dan da sil
-                fetch(SCRIPT_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: id, action: "delete" })
-                });
-            }
+        // Google Tablolar'a silme isteği gönder
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: String(id), action: "delete" })
+        }).catch(err => console.error("Silme hatası:", err));
+    }
+}
         }
     </script>
 </body>
