@@ -45,7 +45,7 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwf9bdnzspFiiwqxtTNK4KB-N3eIXiumcA1VaDqNGRvRQy9ETS8H1WV1bWHMTUXY-eo/exec";
 
         window.onload = function() {
-            loadList(); // Önce yerel hafızadakileri göster
+            loadList(); // Önce yerel hafızadakileri hızlıca göster
             fetchDataFromGoogle(); // Ardından Google Tablolar'dan güncel veriyi çek
         };
 
@@ -56,12 +56,19 @@
             fetch(SCRIPT_URL)
                 .then(response => response.json())
                 .then(remoteData => {
-                    const customers = Array.isArray(remoteData) ? remoteData : (remoteData.customers || []);
-                    localStorage.setItem('customers', JSON.stringify(customers));
+                    let customerList = [];
+                    
+                    // Gelen veri dizi mi yoksa obje mi kontrol et
+                    if (Array.isArray(remoteData)) {
+                        customerList = remoteData;
+                    } else if (remoteData && Array.isArray(remoteData.customers)) {
+                        customerList = remoteData.customers;
+                        
+                        if (remoteData.stylists) localStorage.setItem('stylists', JSON.stringify(remoteData.stylists));
+                        if (remoteData.volumes) localStorage.setItem('volumes', JSON.stringify(remoteData.volumes));
+                    }
 
-                    if (remoteData.stylists) localStorage.setItem('stylists', JSON.stringify(remoteData.stylists));
-                    if (remoteData.volumes) localStorage.setItem('volumes', JSON.stringify(remoteData.volumes));
-
+                    localStorage.setItem('customers', JSON.stringify(customerList));
                     loadList();
                 })
                 .catch(err => console.error("Google Tablolar Veri Çekme Hatası:", err))
@@ -76,10 +83,10 @@
             const container = document.getElementById('listContainer');
             
             const filtered = customers.filter(c => 
-                (c.name && c.name.toLowerCase().includes(query)) || 
-                (c.phone && c.phone.includes(query)) ||
-                (c.brand && c.brand.toLowerCase().includes(query)) ||
-                (c.stylist && c.stylist.toLowerCase().includes(query))
+                (c.name && String(c.name).toLowerCase().includes(query)) || 
+                (c.phone && String(c.phone).includes(query)) ||
+                (c.brand && String(c.brand).toLowerCase().includes(query)) ||
+                (c.stylist && String(c.stylist).toLowerCase().includes(query))
             );
             
             if(filtered.length === 0) {
@@ -87,59 +94,77 @@
                 return;
             }
 
-            container.innerHTML = filtered.map(c => `
-                <div class="customer-card">
-                    <div class="customer-header">
-                        <div>
-                            <div class="customer-name">${c.name}</div>
-                            <div class="customer-phone"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${c.phone}</div>
+            container.innerHTML = filtered.map(c => {
+                const id = String(c.id || '').replace("'", "").trim();
+                const name = c.name || 'İsimsiz Müşteri';
+                const phone = c.phone || '-';
+                const date = c.date || '-';
+                const brand = c.brand || '-';
+                const rootColor = c.rootColor || '-';
+                const rootGram = c.rootGram || '-';
+                const rootVolume = c.rootVolume || '-';
+                const fullColor = c.fullColor || '-';
+                const fullGram = c.fullGram || '-';
+                const fullVolume = c.fullVolume || '-';
+                const notes = c.notes || 'Not yok.';
+                const stylist = c.stylist || '-';
+                const waitTime = c.waitTime || '-';
+
+                return `
+                    <div class="customer-card">
+                        <div class="customer-header">
+                            <div>
+                                <div class="customer-name">${name}</div>
+                                <div class="customer-phone"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${phone}</div>
+                            </div>
+                            <span class="customer-date"><i class="fa-regular fa-calendar"></i> ${date}</span>
                         </div>
-                        <span class="customer-date"><i class="fa-regular fa-calendar"></i> ${c.date}</span>
-                    </div>
 
-                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--secondary); margin-bottom: 6px;">
-                        <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand}
-                    </div>
-
-                    <div class="formula-box">
-                        <div>
-                            <span class="badge badge-dip">Dip Boya</span><br>
-                            <b>No:</b> ${c.rootColor}<br>
-                            <b>Gram:</b> ${c.rootGram}<br>
-                            <b>Vol:</b> ${c.rootVolume}
+                        <div style="font-size: 0.88rem; font-weight: 600; color: var(--secondary); margin-bottom: 6px;">
+                            <i class="fa-solid fa-fill-drip"></i> Marka: ${brand}
                         </div>
-                        <div>
-                            <span class="badge badge-komple">Komple Boya</span><br>
-                            <b>No:</b> ${c.fullColor}<br>
-                            <b>Gram:</b> ${c.fullGram}<br>
-                            <b>Vol:</b> ${c.fullVolume}
+
+                        <div class="formula-box">
+                            <div>
+                                <span class="badge badge-dip">Dip Boya</span><br>
+                                <b>No:</b> ${rootColor}<br>
+                                <b>Gram:</b> ${rootGram}<br>
+                                <b>Vol:</b> ${rootVolume}
+                            </div>
+                            <div>
+                                <span class="badge badge-komple">Komple Boya</span><br>
+                                <b>No:</b> ${fullColor}<br>
+                                <b>Gram:</b> ${fullGram}<br>
+                                <b>Vol:</b> ${fullVolume}
+                            </div>
+                        </div>
+
+                        <div style="font-size: 0.8rem; color: #495057; margin-bottom: 8px;">
+                            <b><i class="fa-solid fa-note-sticky"></i> Not:</b> ${notes}
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #6c757d; border-top: 1px dashed #e9ecef; padding-top: 8px;">
+                            <span><i class="fa-solid fa-user-check"></i> Yapan: <b>${stylist}</b></span>
+                            <span><i class="fa-solid fa-stopwatch"></i> Bekleme: <b>${waitTime} dk</b></span>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-action btn-edit" onclick="editCustomer('${id}')">
+                                <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                            </button>
+                            <button class="btn-action btn-del" onclick="deleteCustomer('${id}')">
+                                <i class="fa-solid fa-trash-can"></i> Sil
+                            </button>
                         </div>
                     </div>
-
-                    <div style="font-size: 0.8rem; color: #495057; margin-bottom: 8px;">
-                        <b><i class="fa-solid fa-note-sticky"></i> Not:</b> ${c.notes}
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #6c757d; border-top: 1px dashed #e9ecef; padding-top: 8px;">
-                        <span><i class="fa-solid fa-user-check"></i> Yapan: <b>${c.stylist}</b></span>
-                        <span><i class="fa-solid fa-stopwatch"></i> Bekleme: <b>${c.waitTime} dk</b></span>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn-action btn-edit" onclick="editCustomer('${c.id}')">
-                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                        </button>
-                        <button class="btn-action btn-del" onclick="deleteCustomer('${c.id}')">
-                            <i class="fa-solid fa-trash-can"></i> Sil
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function editCustomer(id) {
             let customers = JSON.parse(localStorage.getItem('customers')) || [];
-            const customer = customers.find(c => String(c.id).trim() === String(id).trim());
+            const cleanTargetId = String(id).replace("'", "").trim();
+            const customer = customers.find(c => String(c.id).replace("'", "").trim() === cleanTargetId);
             if(customer) {
                 localStorage.setItem('editCustomer', JSON.stringify(customer));
                 window.location.href = 'index.html';
@@ -149,18 +174,17 @@
         function deleteCustomer(id) {
             if(confirm("Bu müşteri kaydını silmek istediğinize emin misiniz?")) {
                 let customers = JSON.parse(localStorage.getItem('customers')) || [];
+                const cleanTargetId = String(id).replace("'", "").trim();
                 
-                // Yerel hafızadan metin eşleşmesi ile sil
-                customers = customers.filter(c => String(c.id).trim() !== String(id).trim());
+                customers = customers.filter(c => String(c.id).replace("'", "").trim() !== cleanTargetId);
                 localStorage.setItem('customers', JSON.stringify(customers));
                 loadList();
 
-                // Google Tablolar'a silme isteği gönder
                 fetch(SCRIPT_URL, {
                     method: "POST",
                     mode: "no-cors",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: String(id), action: "delete" })
+                    body: JSON.stringify({ id: cleanTargetId, action: "delete" })
                 }).catch(err => console.error("Silme hatası:", err));
             }
         }
