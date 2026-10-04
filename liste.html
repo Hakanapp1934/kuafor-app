@@ -6,6 +6,15 @@
     <title>Müşteri Listesi</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sync-badge {
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--secondary);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -13,6 +22,10 @@
     </div>
     
     <div class="container">
+        <div id="syncStatus" class="sync-badge">
+            <i class="fa-solid fa-arrows-rotate fa-spin"></i> Google Tablolar'dan veriler güncelleniyor...
+        </div>
+
         <div style="position: relative; margin-bottom: 20px;">
             <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #adb5bd;"></i>
             <input type="text" id="search" placeholder="İsim, telefon veya marka ara..." onkeyup="loadList()" style="padding-left: 42px; border-radius: 25px;">
@@ -29,7 +42,30 @@
     </div>
 
     <script>
-        window.onload = loadList;
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxj3SX7iW7ruzD6hQ3sq2WIcIf6JTsAfMqw1hscgxm8sXd_DJLNeY0f0tWb0lHJq7IW/exec";
+
+        window.onload = function() {
+            loadList(); // Önce yerel hafızadakileri hızlıca göster
+            fetchDataFromGoogle(); // Ardından Google Tablolar'dan güncel veriyi çek
+        };
+
+        function fetchDataFromGoogle() {
+            const syncDiv = document.getElementById('syncStatus');
+            syncDiv.style.display = 'block';
+
+            fetch(SCRIPT_URL)
+                .then(response => response.json())
+                .then(remoteData => {
+                    if (Array.isArray(remoteData)) {
+                        localStorage.setItem('customers', JSON.stringify(remoteData));
+                        loadList();
+                    }
+                })
+                .catch(err => console.error("Google Tablolar Veri Çekme Hatası:", err))
+                .finally(() => {
+                    syncDiv.style.display = 'none';
+                });
+        }
 
         function loadList() {
             const query = document.getElementById('search').value.toLowerCase().trim();
@@ -37,10 +73,10 @@
             const container = document.getElementById('listContainer');
             
             const filtered = customers.filter(c => 
-                c.name.toLowerCase().includes(query) || 
-                c.phone.includes(query) ||
-                c.brand.toLowerCase().includes(query) ||
-                c.stylist.toLowerCase().includes(query)
+                (c.name && c.name.toLowerCase().includes(query)) || 
+                (c.phone && c.phone.includes(query)) ||
+                (c.brand && c.brand.toLowerCase().includes(query)) ||
+                (c.stylist && c.stylist.toLowerCase().includes(query))
             );
             
             if(filtered.length === 0) {
@@ -81,7 +117,7 @@
                         <b><i class="fa-solid fa-note-sticky"></i> Not:</b> ${c.notes}
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #6c757d; border-top: 1px dashed #e9ecef; padding-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align- items: center; font-size: 0.78rem; color: #6c757d; border-top: 1px dashed #e9ecef; padding-top: 8px;">
                         <span><i class="fa-solid fa-user-check"></i> Yapan: <b>${c.stylist}</b></span>
                         <span><i class="fa-solid fa-stopwatch"></i> Bekleme: <b>${c.waitTime} dk</b></span>
                     </div>
@@ -100,7 +136,7 @@
 
         function editCustomer(id) {
             let customers = JSON.parse(localStorage.getItem('customers')) || [];
-            const customer = customers.find(c => c.id === id);
+            const customer = customers.find(c => c.id == id);
             if(customer) {
                 localStorage.setItem('editCustomer', JSON.stringify(customer));
                 window.location.href = 'index.html';
@@ -110,9 +146,17 @@
         function deleteCustomer(id) {
             if(confirm("Bu müşteri kaydını silmek istediğinize emin misiniz?")) {
                 let customers = JSON.parse(localStorage.getItem('customers')) || [];
-                customers = customers.filter(c => c.id !== id);
+                customers = customers.filter(c => c.id != id);
                 localStorage.setItem('customers', JSON.stringify(customers));
                 loadList();
+
+                // Google Tablolar'dan da sil
+                fetch(SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: id, action: "delete" })
+                });
             }
         }
     </script>
