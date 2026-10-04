@@ -69,6 +69,15 @@
             font-weight: bold;
             margin-bottom: 4px;
         }
+        .history-count-badge {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -111,7 +120,7 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwESaLY74wnh4brbKkdx4V7JRdk-KHlmJGhDfKKcdWrCiJ9z2Xoj_IUQDY0aTxZ7g_z/exec";
 
         window.onload = function() {
-            loadList(); // Önce yerel hafızadakileri göster
+            loadList(); // Önce yerel hafızadakileri hızlıca göster
             fetchDataFromGoogle(); // Google Tablolar'dan güncel veriyi çek
         };
 
@@ -140,24 +149,60 @@
                 });
         }
 
+        // Müşterileri Telefon veya İsme göre gruplama fonksiyonu
+        function groupCustomers(customers) {
+            const map = new Map();
+
+            customers.forEach(item => {
+                const phoneClean = String(item.phone || '').trim();
+                const nameClean = String(item.name || '').trim().toLowerCase();
+                
+                // Telefon varsa telefona göre, yoksa isme göre grupla
+                const key = (phoneClean && phoneClean !== '-') ? `phone:${phoneClean}` : `name:${nameClean}`;
+
+                if (!map.has(key)) {
+                    map.set(key, []);
+                }
+                map.get(key).push(item);
+            });
+
+            return map;
+        }
+
         function loadList() {
             const query = document.getElementById('search').value.toLowerCase().trim();
-            let customers = JSON.parse(localStorage.getItem('customers')) || [];
+            let allCustomers = JSON.parse(localStorage.getItem('customers')) || [];
             const container = document.getElementById('listContainer');
             
-            const filtered = customers.filter(c => 
-                (c.name && String(c.name).toLowerCase().includes(query)) || 
-                (c.phone && String(c.phone).includes(query)) ||
-                (c.brand && String(c.brand).toLowerCase().includes(query)) ||
-                (c.stylist && String(c.stylist).toLowerCase().includes(query))
-            );
+            // 1. Müşterileri grupla (Her müşteri tek bir grup olur)
+            const groupedMap = groupCustomers(allCustomers);
             
-            if(filtered.length === 0) {
+            // 2. Arama filtresini gruplanmış verilere uygula
+            let uniqueCustomerGroups = [];
+            groupedMap.forEach((records, key) => {
+                const latest = records[records.length - 1]; // En son yapılan kayıt
+                const matchName = latest.name && String(latest.name).toLowerCase().includes(query);
+                const matchPhone = latest.phone && String(latest.phone).includes(query);
+                const matchBrand = records.some(r => r.brand && String(r.brand).toLowerCase().includes(query));
+                
+                if (matchName || matchPhone || matchBrand) {
+                    uniqueCustomerGroups.push({
+                        key: key,
+                        latest: latest,
+                        totalCount: records.length,
+                        allRecords: records
+                    });
+                }
+            });
+
+            if(uniqueCustomerGroups.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding: 40px; color: #adb5bd;"><i class="fa-regular fa-folder-open" style="font-size: 2.5rem; margin-bottom: 10px; display:block;"></i>Kayıt bulunamadı.</div>`;
                 return;
             }
 
-            container.innerHTML = filtered.map(c => {
+            // 3. Ekrana Bas
+            container.innerHTML = uniqueCustomerGroups.map(group => {
+                const c = group.latest; // Son işlemi kartta göster
                 const id = String(c.id || '').replace("'", "").trim();
                 const name = c.name || 'İsimsiz Müşteri';
                 const phone = c.phone || '-';
@@ -177,14 +222,17 @@
                     <div class="customer-card">
                         <div class="customer-header">
                             <div>
-                                <div class="customer-name">${name}</div>
+                                <div class="customer-name">
+                                    ${name}
+                                    <span class="history-count-badge"><i class="fa-solid fa-layer-group"></i> ${group.totalCount} İşlem</span>
+                                </div>
                                 <div class="customer-phone"><i class="fa-solid fa-phone" style="font-size:0.75rem;"></i> ${phone}</div>
                             </div>
-                            <span class="customer-date"><i class="fa-regular fa-calendar"></i> ${date}</span>
+                            <span class="customer-date" title="Son İşlem Tarihi"><i class="fa-regular fa-calendar"></i> ${date}</span>
                         </div>
 
                         <div style="font-size: 0.88rem; font-weight: 600; color: var(--secondary); margin-bottom: 6px;">
-                            <i class="fa-solid fa-fill-drip"></i> Marka: ${brand}
+                            <i class="fa-solid fa-fill-drip"></i> Son Marka: ${brand}
                         </div>
 
                         <div class="formula-box">
@@ -212,8 +260,8 @@
                         </div>
 
                         <div class="action-buttons" style="display: flex; gap: 6px; margin-top: 10px;">
-                            <button class="btn-action" onclick="showHistory('${phone}', '${name}')" style="background:#6c5ce7; color:white;">
-                                <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş
+                            <button class="btn-action" onclick="showHistoryByKey('${group.key}')" style="background:#6c5ce7; color:white;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş (${group.totalCount})
                             </button>
                             <button class="btn-action btn-edit" onclick="editCustomer('${id}')">
                                 <i class="fa-solid fa-pen-to-square"></i> Düzenle
@@ -227,45 +275,38 @@
             }).join('');
         }
 
-        function showHistory(phone, name) {
-            let customers = JSON.parse(localStorage.getItem('customers')) || [];
-            const cleanPhone = String(phone).trim();
-            const cleanName = String(name).toLowerCase().trim();
+        function showHistoryByKey(key) {
+            let allCustomers = JSON.parse(localStorage.getItem('customers')) || [];
+            const groupedMap = groupCustomers(allCustomers);
+            const history = groupedMap.get(key) || [];
 
-            // Müşteriyi telefon numarasına veya ismine göre eşleştirip tüm geçmişini çekiyoruz
-            const history = customers.filter(c => {
-                const cPhone = String(c.phone || '').trim();
-                const cName = String(c.name || '').toLowerCase().trim();
-                if (cleanPhone && cleanPhone !== '-') {
-                    return cPhone === cleanPhone;
-                }
-                return cName === cleanName;
-            });
+            if (history.length === 0) return;
 
+            const name = history[history.length - 1].name || 'Müşteri';
             document.getElementById('modalTitle').innerText = `${name} - İşlem Geçmişi (${history.length} Kayıt)`;
             const container = document.getElementById('historyContainer');
 
-            if (history.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding: 20px; color: #adb5bd;">Geçmiş işlem bulunamadı.</div>`;
-            } else {
-                container.innerHTML = history.map(c => `
-                    <div class="timeline-item">
-                        <div class="timeline-date">
-                            <i class="fa-regular fa-calendar"></i> ${c.date || '-'} | <i class="fa-solid fa-user-check"></i> Yapan: ${c.stylist || '-'}
-                        </div>
-                        <div style="font-size:0.85rem; font-weight:bold; color:#333; margin-bottom: 4px;">
-                            <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand || '-'}
-                        </div>
-                        <div style="font-size:0.8rem; color:#555; margin-bottom: 4px;">
-                            <b>Dip:</b> ${c.rootColor || '-'} (${c.rootGram || '-'}g / ${c.rootVolume || '-'})<br>
-                            <b>Komple:</b> ${c.fullColor || '-'} (${c.fullGram || '-'}g / ${c.fullVolume || '-'})
-                        </div>
-                        <div style="font-size:0.75rem; color:#6c757d;">
-                            <b>Bekleme:</b> ${c.waitTime || '-'} dk | <b>Not:</b> ${c.notes || 'Yok'}
-                        </div>
+            // Geçmişi en son işlemden en eskiye doğru sıralayarak gösterelim (Reverse)
+            const reversedHistory = [...history].reverse();
+
+            container.innerHTML = reversedHistory.map((c, index) => `
+                <div class="timeline-item">
+                    <div class="timeline-date">
+                        <i class="fa-regular fa-calendar"></i> ${c.date || '-'} ${index === 0 ? '<span style="color:#2ec4b6; font-weight:bold;">(Son İşlem)</span>' : ''}
                     </div>
-                `).join('');
-            }
+                    <div style="font-size:0.85rem; font-weight:bold; color:#333; margin-bottom: 4px;">
+                        <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand || '-'}
+                    </div>
+                    <div style="font-size:0.8rem; color:#555; margin-bottom: 4px;">
+                        <b>Dip Boya:</b> No: ${c.rootColor || '-'} | Gram: ${c.rootGram || '-'} | Vol: ${c.rootVolume || '-'}<br>
+                        <b>Komple Boya:</b> No: ${c.fullColor || '-'} | Gram: ${c.fullGram || '-'} | Vol: ${c.fullVolume || '-'}
+                    </div>
+                    <div style="font-size:0.75rem; color:#6c757d;">
+                        <b>Yapan:</b> ${c.stylist || '-'} | <b>Bekleme:</b> ${c.waitTime || '-'} dk<br>
+                        <b>Not:</b> ${c.notes || 'Yok'}
+                    </div>
+                </div>
+            `).join('');
 
             document.getElementById('historyModal').classList.add('active');
         }
@@ -285,7 +326,7 @@
         }
 
         function deleteCustomer(id) {
-            if(confirm("Bu müşteri kaydını silmek istediğinize emin misiniz?")) {
+            if(confirm("Bu son işlemi silmek istediğinize emin misiniz?")) {
                 let customers = JSON.parse(localStorage.getItem('customers')) || [];
                 const cleanTargetId = String(id).replace("'", "").trim();
                 
