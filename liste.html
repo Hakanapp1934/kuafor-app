@@ -56,11 +56,9 @@
         }
         .timeline-item {
             border-left: 3px solid #6c5ce7;
-            padding-left: 12px;
             margin-bottom: 15px;
-            position: relative;
             background: #f8f9fa;
-            padding: 10px 12px;
+            padding: 12px;
             border-radius: 0 8px 8px 0;
         }
         .timeline-date {
@@ -77,6 +75,15 @@
             font-size: 0.75rem;
             font-weight: 600;
             margin-left: 6px;
+        }
+        .history-action-btn {
+            background: none;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -120,7 +127,7 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwESaLY74wnh4brbKkdx4V7JRdk-KHlmJGhDfKKcdWrCiJ9z2Xoj_IUQDY0aTxZ7g_z/exec";
 
         window.onload = function() {
-            loadList(); // Önce yerel hafızadakileri hızlıca göster
+            loadList(); // Önce yerel hafızadakileri göster
             fetchDataFromGoogle(); // Google Tablolar'dan güncel veriyi çek
         };
 
@@ -149,7 +156,7 @@
                 });
         }
 
-        // Müşterileri Telefon veya İsme göre gruplama fonksiyonu
+        // Müşterileri Telefon veya İsme göre gruplama
         function groupCustomers(customers) {
             const map = new Map();
 
@@ -157,7 +164,6 @@
                 const phoneClean = String(item.phone || '').trim();
                 const nameClean = String(item.name || '').trim().toLowerCase();
                 
-                // Telefon varsa telefona göre, yoksa isme göre grupla
                 const key = (phoneClean && phoneClean !== '-') ? `phone:${phoneClean}` : `name:${nameClean}`;
 
                 if (!map.has(key)) {
@@ -174,11 +180,9 @@
             let allCustomers = JSON.parse(localStorage.getItem('customers')) || [];
             const container = document.getElementById('listContainer');
             
-            // 1. Müşterileri grupla (Her müşteri tek bir grup olur)
             const groupedMap = groupCustomers(allCustomers);
-            
-            // 2. Arama filtresini gruplanmış verilere uygula
             let uniqueCustomerGroups = [];
+
             groupedMap.forEach((records, key) => {
                 const latest = records[records.length - 1]; // En son yapılan kayıt
                 const matchName = latest.name && String(latest.name).toLowerCase().includes(query);
@@ -200,9 +204,8 @@
                 return;
             }
 
-            // 3. Ekrana Bas
             container.innerHTML = uniqueCustomerGroups.map(group => {
-                const c = group.latest; // Son işlemi kartta göster
+                const c = group.latest;
                 const id = String(c.id || '').replace("'", "").trim();
                 const name = c.name || 'İsimsiz Müşteri';
                 const phone = c.phone || '-';
@@ -261,7 +264,7 @@
 
                         <div class="action-buttons" style="display: flex; gap: 6px; margin-top: 10px;">
                             <button class="btn-action" onclick="showHistoryByKey('${group.key}')" style="background:#6c5ce7; color:white;">
-                                <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş (${group.totalCount})
+                                <i class="fa-solid fa-clock-rotate-left"></i> Tüm Geçmiş (${group.totalCount})
                             </button>
                             <button class="btn-action btn-edit" onclick="editCustomer('${id}')">
                                 <i class="fa-solid fa-pen-to-square"></i> Düzenle
@@ -280,33 +283,51 @@
             const groupedMap = groupCustomers(allCustomers);
             const history = groupedMap.get(key) || [];
 
-            if (history.length === 0) return;
+            if (history.length === 0) {
+                closeHistory();
+                return;
+            }
 
             const name = history[history.length - 1].name || 'Müşteri';
             document.getElementById('modalTitle').innerText = `${name} - İşlem Geçmişi (${history.length} Kayıt)`;
             const container = document.getElementById('historyContainer');
 
-            // Geçmişi en son işlemden en eskiye doğru sıralayarak gösterelim (Reverse)
+            // Geçmişi en sondan en eskiye doğru sırala
             const reversedHistory = [...history].reverse();
 
-            container.innerHTML = reversedHistory.map((c, index) => `
-                <div class="timeline-item">
-                    <div class="timeline-date">
-                        <i class="fa-regular fa-calendar"></i> ${c.date || '-'} ${index === 0 ? '<span style="color:#2ec4b6; font-weight:bold;">(Son İşlem)</span>' : ''}
+            container.innerHTML = reversedHistory.map((c, index) => {
+                const id = String(c.id || '').replace("'", "").trim();
+                return `
+                    <div class="timeline-item">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div class="timeline-date">
+                                    <i class="fa-regular fa-calendar"></i> ${c.date || '-'} ${index === 0 ? '<span style="color:#2ec4b6; font-weight:bold;">(Son İşlem)</span>' : ''}
+                                </div>
+                                <div style="font-size:0.85rem; font-weight:bold; color:#333; margin-bottom: 4px;">
+                                    <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand || '-'}
+                                </div>
+                                <div style="font-size:0.8rem; color:#555; margin-bottom: 4px;">
+                                    <b>Dip Boya:</b> No: ${c.rootColor || '-'} | Gram: ${c.rootGram || '-'} | Vol: ${c.rootVolume || '-'}<br>
+                                    <b>Komple Boya:</b> No: ${c.fullColor || '-'} | Gram: ${c.fullGram || '-'} | Vol: ${c.fullVolume || '-'}
+                                </div>
+                                <div style="font-size:0.75rem; color:#6c757d;">
+                                    <b>Yapan:</b> ${c.stylist || '-'} | <b>Bekleme:</b> ${c.waitTime || '-'} dk<br>
+                                    <b>Not:</b> ${c.notes || 'Yok'}
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:4px; flex-shrink:0;">
+                                <button class="history-action-btn" onclick="editCustomer('${id}')" style="background:#e0f2fe; color:#0369a1;" title="Bu İşlemi Düzenle">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button class="history-action-btn" onclick="deleteCustomer('${id}', '${key}')" style="background:#fee2e2; color:#dc2626;" title="Bu İşlemi Sil">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size:0.85rem; font-weight:bold; color:#333; margin-bottom: 4px;">
-                        <i class="fa-solid fa-fill-drip"></i> Marka: ${c.brand || '-'}
-                    </div>
-                    <div style="font-size:0.8rem; color:#555; margin-bottom: 4px;">
-                        <b>Dip Boya:</b> No: ${c.rootColor || '-'} | Gram: ${c.rootGram || '-'} | Vol: ${c.rootVolume || '-'}<br>
-                        <b>Komple Boya:</b> No: ${c.fullColor || '-'} | Gram: ${c.fullGram || '-'} | Vol: ${c.fullVolume || '-'}
-                    </div>
-                    <div style="font-size:0.75rem; color:#6c757d;">
-                        <b>Yapan:</b> ${c.stylist || '-'} | <b>Bekleme:</b> ${c.waitTime || '-'} dk<br>
-                        <b>Not:</b> ${c.notes || 'Yok'}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('historyModal').classList.add('active');
         }
@@ -325,15 +346,23 @@
             }
         }
 
-        function deleteCustomer(id) {
-            if(confirm("Bu son işlemi silmek istediğinize emin misiniz?")) {
+        function deleteCustomer(id, groupKey = null) {
+            if(confirm("Bu boyama işlemini silmek istediğinize emin misiniz?")) {
                 let customers = JSON.parse(localStorage.getItem('customers')) || [];
                 const cleanTargetId = String(id).replace("'", "").trim();
                 
                 customers = customers.filter(c => String(c.id).replace("'", "").trim() !== cleanTargetId);
                 localStorage.setItem('customers', JSON.stringify(customers));
+                
+                // Ana Listeyi Güncelle
                 loadList();
 
+                // Eğer Geçmiş Penceresinden Silindiyse Açılır Pencereyi de Güncelle
+                if (groupKey) {
+                    showHistoryByKey(groupKey);
+                }
+
+                // Google Tablolar'dan Sil
                 fetch(SCRIPT_URL, {
                     method: "POST",
                     mode: "no-cors",
